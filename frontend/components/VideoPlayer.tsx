@@ -5,10 +5,9 @@ import { parseYouTubeUrl } from '../utils/youtube';
 interface VideoPlayerProps {
   channel: Channel;
   isChangingChannel: boolean;
-  onVideoEnd?: () => void;
 }
 
-export const VideoPlayer: React.FC<VideoPlayerProps> = ({ channel, isChangingChannel, onVideoEnd }) => {
+export const VideoPlayer: React.FC<VideoPlayerProps> = ({ channel, isChangingChannel }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const youtubeVideo = !channel.isThirdParty ? parseYouTubeUrl(channel.currentProgram.videoUrl) : null;
   const isMp4Video = channel.currentProgram.videoUrl.endsWith('.mp4');
@@ -28,17 +27,10 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ channel, isChangingCha
     videoElement.load();
     videoElement.addEventListener('canplay', playVideo);
 
-    if (onVideoEnd) {
-      videoElement.addEventListener('ended', onVideoEnd);
-    }
-
     return () => {
       videoElement.removeEventListener('canplay', playVideo);
-      if (onVideoEnd) {
-        videoElement.removeEventListener('ended', onVideoEnd);
-      }
     };
-  }, [channel.id, onVideoEnd, isMp4Video]);
+  }, [channel.id, isMp4Video]);
 
   const renderPlayer = () => {
     if (isMp4Video) {

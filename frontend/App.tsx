@@ -108,6 +108,26 @@ export default function App() {
     }
   }, [preferences, isMyChannelActive]);
 
+  // 15-second auto-advance timer effect
+  useEffect(() => {
+    // Only run if auto-advance is enabled and we're not on a live cam
+    if (!isAutoAdvanceEnabled || currentChannel.isThirdParty) {
+      return;
+    }
+
+    const advanceInterval = setInterval(() => {
+      const currentIndex = activeChannels.findIndex(c => c.id === currentChannelId);
+      if (currentIndex !== -1) {
+        const nextIndex = (currentIndex + 1) % activeChannels.length;
+        changeChannel(activeChannels[nextIndex].id);
+      }
+    }, 15000); // 15 seconds
+
+    // Cleanup function to stop the timer
+    return () => clearInterval(advanceInterval);
+
+  }, [isAutoAdvanceEnabled, currentChannel, currentChannelId, activeChannels, changeChannel]);
+
   const triggerSimulatedAlert = useCallback(() => {
     if (!preferences.enableSmartAlerts || connectedCamChannels.length === 0) return;
     
@@ -147,16 +167,6 @@ export default function App() {
     });
   }, []);
 
-  const handleVideoEnd = useCallback(() => {
-    if (!isAutoAdvanceEnabled || currentChannel.isThirdParty) return;
-
-    const currentIndex = activeChannels.findIndex(c => c.id === currentChannelId);
-    if (currentIndex !== -1) {
-      const nextIndex = (currentIndex + 1) % activeChannels.length;
-      changeChannel(activeChannels[nextIndex].id);
-    }
-  }, [isAutoAdvanceEnabled, currentChannelId, activeChannels, changeChannel, currentChannel.isThirdParty]);
-
   const renderMainContent = () => {
     if (activeTab === 'my-channel' || activeTab === 'live-tv') {
       return (
@@ -164,7 +174,6 @@ export default function App() {
           <VideoPlayer 
             channel={currentChannel} 
             isChangingChannel={isChangingChannel}
-            onVideoEnd={handleVideoEnd}
           />
           <OSD 
             currentChannel={currentChannel}
