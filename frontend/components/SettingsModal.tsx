@@ -20,6 +20,13 @@ const getBrandIcon = (iconName: string) => {
   }
 };
 
+const SYNC_INTERVALS = [
+  { label: '15분', value: 15 },
+  { label: '30분', value: 30 },
+  { label: '1시간', value: 60 },
+  { label: '6시간', value: 360 },
+];
+
 export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, preferences, onUpdatePreferences }) => {
   const [connectingId, setConnectingId] = useState<string | null>(null);
   const [connectingGoogle, setConnectingGoogle] = useState(false);
@@ -57,7 +64,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, p
 
   const handleToggleGoogle = () => {
     if (preferences.isGoogleConnected) {
-      // Disconnect and remove the auto-added genre if it was there
       onUpdatePreferences({ 
         ...preferences, 
         isGoogleConnected: false,
@@ -66,7 +72,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, p
     } else {
       setConnectingGoogle(true);
       setTimeout(() => {
-        // Connect and auto-add the recommended genre based on YouTube algorithm
         onUpdatePreferences({
           ...preferences,
           isGoogleConnected: true,
@@ -77,7 +82,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, p
     }
   };
 
-  // Determine which genres to display
   const displayGenres = preferences.isGoogleConnected 
     ? [...ALL_GENRES, '연애 프로그램' as Genre] 
     : ALL_GENRES;
@@ -86,7 +90,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, p
     <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
       <div className="bg-gray-900 border border-white/10 rounded-2xl w-full max-w-3xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
         
-        {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-white/10 bg-white/5 shrink-0">
           <h2 className="text-2xl font-semibold">마이 채널 설정</h2>
           <button onClick={onClose} className="p-2 rounded-full hover:bg-white/10 transition-colors">
@@ -94,10 +97,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, p
           </button>
         </div>
 
-        {/* Content */}
         <div className="p-8 overflow-y-auto flex-1 custom-scrollbar">
           
-          {/* Account Integration */}
           <section className="mb-10">
             <div className="mb-4">
               <h3 className="text-lg font-medium text-white/90">계정 연동</h3>
@@ -133,7 +134,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, p
             </div>
           </section>
 
-          {/* Taste Profile */}
           <section className="mb-10">
             <div className="mb-4">
               <h3 className="text-lg font-medium text-white/90">취향 프로필</h3>
@@ -167,7 +167,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, p
             </div>
           </section>
 
-          {/* Connected Devices */}
           <section className="mb-10">
             <div className="mb-4">
               <h3 className="text-lg font-medium text-white/90">연결된 카메라</h3>
@@ -217,7 +216,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, p
             </div>
           </section>
 
-          {/* Smart Features */}
           <section>
             <div className="mb-4">
               <h3 className="text-lg font-medium text-white/90">스마트 기능</h3>
@@ -255,12 +253,49 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, p
                   onChange={(e) => onUpdatePreferences({ ...preferences, enableSmartAlerts: e.target.checked })}
                 />
               </label>
+
+              <div className="p-4 rounded-xl bg-white/5 border border-white/5">
+                <label className="flex items-center justify-between cursor-pointer">
+                  <div>
+                    <div className="font-medium">채널 목록 자동 동기화</div>
+                    <div className="text-sm text-white/50 mt-1">TV Plus 서버와 주기적으로 채널 목록을 동기화합니다.</div>
+                  </div>
+                  <div className={`w-12 h-6 rounded-full transition-colors relative ${preferences.enableAutoSync ? 'bg-blue-600' : 'bg-gray-600'}`}>
+                    <div className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform ${preferences.enableAutoSync ? 'translate-x-6' : 'translate-x-0'}`} />
+                  </div>
+                  <input 
+                    type="checkbox" 
+                    className="hidden"
+                    checked={preferences.enableAutoSync}
+                    onChange={(e) => onUpdatePreferences({ ...preferences, enableAutoSync: e.target.checked })}
+                  />
+                </label>
+                {preferences.enableAutoSync && (
+                  <div className="mt-6">
+                    <div className="text-sm text-white/70 mb-3">동기화 주기:</div>
+                    <div className="flex items-center gap-2">
+                      {SYNC_INTERVALS.map(interval => (
+                        <button
+                          key={interval.value}
+                          onClick={() => onUpdatePreferences({ ...preferences, autoSyncInterval: interval.value })}
+                          className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                            preferences.autoSyncInterval === interval.value
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-white/10 text-white/70 hover:bg-white/20'
+                          }`}
+                        >
+                          {interval.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </section>
 
         </div>
         
-        {/* Footer */}
         <div className="p-6 border-t border-white/10 bg-white/5 flex justify-end shrink-0">
           <button 
             onClick={onClose}

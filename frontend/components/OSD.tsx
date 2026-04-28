@@ -43,6 +43,11 @@ export const OSD: React.FC<OSDProps> = ({
 
   const isLiked = likedChannels.has(currentChannel.id);
 
+  // Construct the final recommendation text
+  const finalRecommendationReason = recommendationReason?.startsWith("'")
+    ? `회원님의 선호 장르인 ${recommendationReason}에 맞춰 추천해 드렸어요.`
+    : recommendationReason;
+
   return (
     <div className={`absolute inset-0 pointer-events-none transition-opacity duration-500 z-40 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
       
@@ -114,12 +119,12 @@ export const OSD: React.FC<OSDProps> = ({
             <p className="text-white/70 text-lg line-clamp-2 mt-2">{currentChannel.currentProgram.description}</p>
             
             {/* AI Recommendation Reason */}
-            {isMyChannelActive && recommendationReason && !currentChannel.isThirdParty && (
+            {isMyChannelActive && finalRecommendationReason && !currentChannel.isThirdParty && (
               <div className="mt-4 flex items-start gap-2 text-blue-300 bg-blue-900/30 p-3 rounded-lg border border-blue-500/30">
                 <Sparkles size={18} className="shrink-0 mt-0.5" />
                 <p className="text-sm font-medium leading-relaxed">
                   <span className="font-bold text-blue-200">AI 추천: </span>
-                  {recommendationReason}
+                  {finalRecommendationReason}
                 </p>
               </div>
             )}

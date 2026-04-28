@@ -162,6 +162,21 @@ export const MOCK_CHANNELS: Channel[] = [
       endTime: '23:59'
     }
   },
+  {
+    id: 'ch-111',
+    number: 111,
+    name: '연애모음집',
+    currentProgram: {
+      id: 'epg_011',
+      title: '연애의 참견',
+      genre: '연애 프로그램',
+      description: '당신의 연애를 진단해 줄 본격 로맨스 파괴 토크쇼!',
+      thumbnail: 'https://i.ytimg.com/vi/9qwgnWu_ZMI/hqdefault.jpg',
+      videoUrl: 'https://youtu.be/Rsg93FLpZCE?si=tZmQJKzLISKQPSUl',
+      startTime: '00:00',
+      endTime: '23:59'
+    }
+  },
   // 3rd Party Camera Channels
   {
     id: 'ch-999',

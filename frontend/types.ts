@@ -1,14 +1,4 @@
-export type Genre =
-  | '음악'
-  | '푸드'
-  | '예능'
-  | '스포츠'
-  | '라이프'
-  | '애니/키즈'
-  | '뉴스/정보'
-  | '건강/교양'
-  | '영화'
-  | '홈캠';
+export type Genre = 'SF' | '시티팝' | '뉴스' | '스포츠' | '키즈' | '다큐멘터리' | '영화' | '예능' | '연애 프로그램';
 
 export interface Program {
   id: string;
@@ -23,17 +13,26 @@ export interface Program {
 
 export interface Channel {
   id: string;
-  name: string;
   number: number;
-  currentProgram: Program;
+  name: string;
   isThirdParty?: boolean;
   brandId?: string;
-  logo?: string;
+  currentProgram: Program;
+}
+
+export interface UserPreferences {
+  favoriteGenres: Genre[];
+  autoSwitchToMyChannel: boolean;
+  enableSmartAlerts: boolean;
+  connectedCams: string[];
+  isGoogleConnected: boolean;
+  enableAutoSync: boolean;
+  autoSyncInterval: number; // in minutes
 }
 
 export interface AlertEvent {
   id: string;
-  type: 'motion' | 'sound' | 'system';
+  type: 'motion' | 'sound' | 'person';
   message: string;
   channelId: string;
   timestamp: Date;
@@ -45,12 +44,4 @@ export interface CamBrand {
   name: string;
   icon: string;
   description: string;
-}
-
-export interface UserPreferences {
-  favoriteGenres: Genre[];
-  autoSwitchToMyChannel: boolean;
-  enableSmartAlerts: boolean;
-  connectedCams: string[];
-  isGoogleConnected: boolean;
 }
