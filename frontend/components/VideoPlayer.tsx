@@ -1,21 +1,23 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Channel } from '../types';
 import { parseYouTubeUrl } from '../utils/youtube';
 
 interface VideoPlayerProps {
   channel: Channel;
   isChangingChannel: boolean;
+  onVideoEnd?: () => void;
 }
 
-export const VideoPlayer: React.FC<VideoPlayerProps> = ({ channel, isChangingChannel }) => {
+export const VideoPlayer: React.FC<VideoPlayerProps> = ({ channel, isChangingChannel, onVideoEnd }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [showStatic, setShowStatic] = useState(false);
   const youtubeVideo = !channel.isThirdParty ? parseYouTubeUrl(channel.currentProgram.videoUrl) : null;
+  const isMp4Video = channel.currentProgram.videoUrl.endsWith('.mp4');
   const fallbackThumbnail = youtubeVideo?.thumbnailUrl ?? channel.currentProgram.thumbnail;
 
+  // Effect for robust MP4 video playback
   useEffect(() => {
     const videoElement = videoRef.current;
-    if (!videoElement || !channel.isThirdParty) return;
+    if (!videoElement || !isMp4Video) return;
 
     const playVideo = () => {
       videoElement.play().catch(error => {
@@ -26,73 +28,66 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ channel, isChangingCha
     videoElement.load();
     videoElement.addEventListener('canplay', playVideo);
 
+    if (onVideoEnd) {
+      videoElement.addEventListener('ended', onVideoEnd);
+    }
+
     return () => {
       videoElement.removeEventListener('canplay', playVideo);
+      if (onVideoEnd) {
+        videoElement.removeEventListener('ended', onVideoEnd);
+      }
     };
-  }, [channel.id, channel.currentProgram.videoUrl, channel.isThirdParty]);
+  }, [channel.id, onVideoEnd, isMp4Video]);
 
-  useEffect(() => {
-    if (isChangingChannel) {
-      setShowStatic(true);
-    }
-  }, [isChangingChannel]);
-
-  useEffect(() => {
-    if (!showStatic) {
-      return;
-    }
-
-    const timer = setTimeout(() => setShowStatic(false), 400);
-    return () => clearTimeout(timer);
-  }, [channel.id, showStatic]);
-
-  return (
-    <div className="absolute inset-0 w-full h-full bg-black overflow-hidden">
-      {channel.isThirdParty ? (
+  const renderPlayer = () => {
+    if (isMp4Video) {
+      return (
         <video
           ref={videoRef}
           key={channel.id}
           src={channel.currentProgram.videoUrl}
-          loop
           muted
           playsInline
-          className={`h-full w-full object-cover transition-opacity duration-500 ${showStatic ? 'opacity-0' : 'opacity-100'}`}
+          loop={channel.isThirdParty} // Loop for live cams, not for VODs
+          className={`w-full h-full object-cover transition-opacity duration-300 ${isChangingChannel ? 'opacity-0' : 'opacity-100'}`}
         />
-      ) : youtubeVideo ? (
+      );
+    }
+
+    if (youtubeVideo) {
+      return (
         <iframe
           key={channel.id}
           src={youtubeVideo.embedUrl}
           title={channel.currentProgram.title}
-          className={`absolute inset-0 h-full w-full transition-opacity duration-500 ${showStatic ? 'opacity-0' : 'opacity-100'}`}
+          className={`absolute inset-0 h-full w-full transition-opacity duration-300 ${isChangingChannel ? 'opacity-0' : 'opacity-100'}`}
           allow="autoplay; encrypted-media; picture-in-picture"
           referrerPolicy="strict-origin-when-cross-origin"
           allowFullScreen
         />
-      ) : (
-        <div
-          className={`absolute inset-0 transition-opacity duration-500 ${showStatic ? 'opacity-0' : 'opacity-100'}`}
-          style={{
-            backgroundImage: `url(${fallbackThumbnail})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            filter: channel.isThirdParty ? 'brightness(0.8) contrast(1.1)' : 'none'
-          }}
-        >
-          {/* Live indicator for 3rd party cams */}
-          {channel.isThirdParty && (
-            <div className="absolute top-8 right-8 flex items-center gap-2 bg-black/50 px-3 py-1 rounded-full backdrop-blur-sm">
-              <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-              <span className="text-xs font-medium tracking-wider text-white/90 uppercase">Live Cam</span>
-            </div>
-          )}
-        </div>
-      )}
+      );
+    }
 
-      {/* Subtle vignette for TV look */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/30 pointer-events-none" />
+    // Fallback to thumbnail
+    return (
+      <div
+        className={`absolute inset-0 transition-opacity duration-300 ${isChangingChannel ? 'opacity-0' : 'opacity-100'}`}
+        style={{
+          backgroundImage: `url(${fallbackThumbnail})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }}
+      >
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/30 pointer-events-none" />
+      </div>
+    );
+  };
 
-      {/* TV Static Effect during channel change */}
-      {showStatic && (
+  return (
+    <div className="absolute inset-0 w-full h-full bg-black overflow-hidden">
+      {renderPlayer()}
+      {isChangingChannel && (
         <div className="absolute inset-0 tv-static z-10" />
       )}
     </div>

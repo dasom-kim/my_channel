@@ -21,7 +21,7 @@ export const NavBar: React.FC<NavBarProps> = ({ activeTab, onTabChange, onOpenSe
   ] as const;
 
   return (
-    <div className="w-20 h-full bg-[#0a0a0a] border-r border-white/10 flex flex-col items-center py-6 z-50 shrink-0">
+    <div className="w-20 h-full bg-[#0a0a0a] border-r border-white/10 flex flex-col items-center py-6 z-30 shrink-0">
       {/* Samsung TV Plus Logo */}
       <div className="mb-10 cursor-pointer">
         <svg viewBox="0 0 100 100" className="w-12 h-12" fill="none" xmlns="http://www.w3.org/2000/svg">
