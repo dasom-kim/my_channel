@@ -8,7 +8,7 @@ import { SettingsModal } from './components/SettingsModal';
 import { SmartAlertPiP } from './components/SmartAlertPiP';
 import { ChannelList } from './components/ChannelList';
 import { NavBar, NavTab } from './components/NavBar';
-import { AlertTriangle, Shuffle } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 
 const DEFAULT_PREFS: UserPreferences = {
   favoriteGenres: ['음악', '스포츠'],
@@ -29,7 +29,7 @@ export default function App() {
   const [recommendationReason, setRecommendationReason] = useState<string>('');
   const [likedChannels, setLikedChannels] = useState<Set<string>>(new Set());
   const [isAutoAdvanceEnabled, setIsAutoAdvanceEnabled] = useState<boolean>(false);
-  const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null); // New state for sync time
+  const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
 
   const isMyChannelActive = activeTab === 'my-channel';
 
@@ -92,7 +92,7 @@ export default function App() {
     
     const { channelId, reason } = await getRecommendedChannel(activeChannels, preferences);
     setRecommendationReason(reason);
-    setLastSyncTime(new Date()); // Update sync time
+    setLastSyncTime(new Date());
     
     if (channelId !== currentChannelId) {
       changeChannel(channelId);
@@ -173,6 +173,8 @@ export default function App() {
             recommendationReason={recommendationReason}
             likedChannels={likedChannels}
             onToggleLike={toggleLike}
+            isAutoAdvanceEnabled={isAutoAdvanceEnabled}
+            onToggleAutoAdvance={() => setIsAutoAdvanceEnabled(!isAutoAdvanceEnabled)}
           />
           <ChannelList 
             channels={activeChannels}
@@ -210,18 +212,6 @@ export default function App() {
       />
       <div className="flex-1 relative">
         {renderMainContent()}
-
-        <div className="absolute top-4 left-4 z-20">
-          <button
-            onClick={() => setIsAutoAdvanceEnabled(!isAutoAdvanceEnabled)}
-            className={`p-2 rounded-full transition-colors duration-300 ${
-              isAutoAdvanceEnabled ? 'bg-blue-600 text-white' : 'bg-black/50 text-white/70 hover:bg-white/20'
-            }`}
-            title={isAutoAdvanceEnabled ? "자동 채널 전환 비활성화" : "자동 채널 전환 활성화"}
-          >
-            <Shuffle size={20} />
-          </button>
-        </div>
 
         <SmartAlertPiP 
           alert={activeAlert}

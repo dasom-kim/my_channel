@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Channel, UserPreferences } from '../types';
-import { Sparkles, Heart } from 'lucide-react';
+import { Sparkles, Heart, Shuffle } from 'lucide-react';
 
 interface OSDProps {
   currentChannel: Channel;
@@ -9,6 +9,8 @@ interface OSDProps {
   recommendationReason?: string;
   likedChannels: Set<string>;
   onToggleLike: (channelId: string) => void;
+  isAutoAdvanceEnabled: boolean;
+  onToggleAutoAdvance: () => void;
 }
 
 export const OSD: React.FC<OSDProps> = ({ 
@@ -17,7 +19,9 @@ export const OSD: React.FC<OSDProps> = ({
   isMyChannelActive, 
   recommendationReason,
   likedChannels,
-  onToggleLike
+  onToggleLike,
+  isAutoAdvanceEnabled,
+  onToggleAutoAdvance
 }) => {
   const [isVisible, setIsVisible] = useState(true);
 
@@ -45,6 +49,25 @@ export const OSD: React.FC<OSDProps> = ({
       {/* Bottom Info Bar */}
       <div className="absolute bottom-0 left-0 right-0 p-12 bg-gradient-to-t from-black/90 via-black/60 to-transparent">
         <div className="max-w-4xl">
+          
+          {/* Shuffle Mode UI */}
+          <div className="flex items-center gap-2 mb-2">
+            <button
+              onClick={onToggleAutoAdvance}
+              className={`pointer-events-auto p-2 rounded-full transition-colors duration-300 ${
+                isAutoAdvanceEnabled ? 'bg-blue-600 text-white' : 'bg-black/50 text-white/70 hover:bg-white/20'
+              }`}
+              title={isAutoAdvanceEnabled ? "자동 채널 전환 비활성화" : "자동 채널 전환 활성화"}
+            >
+              <Shuffle size={20} />
+            </button>
+            {isAutoAdvanceEnabled && (
+              <span className="bg-blue-600/80 text-white text-xs font-semibold px-3 py-1.5 rounded-full animate-fade-in">
+                자동 채널 전환
+              </span>
+            )}
+          </div>
+
           <div className="flex items-center gap-6 mb-4">
             <div className="text-6xl font-bold text-white/90 drop-shadow-lg">
               {currentChannel.number}

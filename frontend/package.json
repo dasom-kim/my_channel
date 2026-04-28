@@ -10,15 +10,16 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "react": "latest",
-    "react-dom": "latest",
+    "@google/genai": "latest",
     "lucide-react": "latest",
-    "@google/genai": "latest"
+    "react": "latest",
+    "react-dom": "latest"
   },
   "devDependencies": {
-    "@types/node": "latest",
     "@testing-library/jest-dom": "latest",
     "@testing-library/react": "latest",
+    "@types/node": "latest",
+    "@types/react": "^19.2.14",
     "@vitejs/plugin-react": "latest",
     "jsdom": "latest",
     "typescript": "latest",

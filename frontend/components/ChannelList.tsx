@@ -33,11 +33,11 @@ export const ChannelList: React.FC<ChannelListProps> = ({
 
   return (
     <>
-      {/* Toggle Button is always on top */}
+      {/* Toggle Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={`absolute top-1/2 -translate-y-1/2 z-50 p-2 bg-black/50 rounded-full transition-all duration-300 ease-in-out hover:bg-blue-600 ${
-          isOpen ? 'left-80' : 'left-4'
+          isOpen ? 'left-[21rem]' : 'left-4' // Adjusted left position for open state
         }`}
         title={isOpen ? "채널 목록 닫기" : "채널 목록 열기"}
       >
@@ -47,7 +47,7 @@ export const ChannelList: React.FC<ChannelListProps> = ({
       {/* Sidebar Panel */}
       <div 
         className={`absolute left-0 top-0 bottom-0 w-80 bg-black/90 backdrop-blur-xl border-r border-white/10 transition-transform duration-300 ease-in-out flex flex-col ${
-          isOpen ? 'translate-x-0 z-50' : '-translate-x-full z-20' // Open: z-50, Closed: z-20
+          isOpen ? 'translate-x-0 z-50' : '-translate-x-full z-20'
         }`}
       >
         <div className="p-6 border-b border-white/10 flex items-center justify-between">
