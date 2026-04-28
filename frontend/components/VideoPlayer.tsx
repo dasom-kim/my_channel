@@ -1,5 +1,6 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Channel } from '../types';
+import { parseYouTubeUrl } from '../utils/youtube';
 
 interface VideoPlayerProps {
   channel: Channel;
@@ -8,64 +9,90 @@ interface VideoPlayerProps {
 
 export const VideoPlayer: React.FC<VideoPlayerProps> = ({ channel, isChangingChannel }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [showStatic, setShowStatic] = useState(false);
+  const youtubeVideo = !channel.isThirdParty ? parseYouTubeUrl(channel.currentProgram.videoUrl) : null;
+  const fallbackThumbnail = youtubeVideo?.thumbnailUrl ?? channel.currentProgram.thumbnail;
 
-  // This effect handles the core playback logic.
-  // It runs whenever the channel ID changes.
   useEffect(() => {
     const videoElement = videoRef.current;
-    // Exit if this is not a video channel
     if (!videoElement || !channel.isThirdParty) return;
 
-    // This is the function that will be called when the video is ready
     const playVideo = () => {
       videoElement.play().catch(error => {
         console.error("Video playback was prevented by the browser:", error);
       });
     };
 
-    // When the channel changes, we explicitly tell the video element to load the new source.
     videoElement.load();
-    
-    // We then listen for the 'canplay' event. The browser fires this event
-    // when it has downloaded enough data to begin playback.
     videoElement.addEventListener('canplay', playVideo);
 
-    // Cleanup function: It's crucial to remove the event listener when the
-    // component re-renders for a new channel, to avoid multiple listeners.
     return () => {
       videoElement.removeEventListener('canplay', playVideo);
     };
-  }, [channel.id]); // The dependency array ensures this logic runs on every channel change.
+  }, [channel.id, channel.currentProgram.videoUrl, channel.isThirdParty]);
+
+  useEffect(() => {
+    if (isChangingChannel) {
+      setShowStatic(true);
+    }
+  }, [isChangingChannel]);
+
+  useEffect(() => {
+    if (!showStatic) {
+      return;
+    }
+
+    const timer = setTimeout(() => setShowStatic(false), 400);
+    return () => clearTimeout(timer);
+  }, [channel.id, showStatic]);
 
   return (
     <div className="absolute inset-0 w-full h-full bg-black overflow-hidden">
       {channel.isThirdParty ? (
         <video
           ref={videoRef}
-          key={channel.id} // This is crucial: it forces a re-mount on channel change
+          key={channel.id}
           src={channel.currentProgram.videoUrl}
-          // autoPlay is removed to give full, reliable control to our useEffect
           loop
           muted
           playsInline
-          // The transition is now simpler, directly tied to the isChangingChannel prop
-          className={`w-full h-full object-cover transition-opacity duration-300 ${isChangingChannel ? 'opacity-0' : 'opacity-100'}`}
+          className={`h-full w-full object-cover transition-opacity duration-500 ${showStatic ? 'opacity-0' : 'opacity-100'}`}
+        />
+      ) : youtubeVideo ? (
+        <iframe
+          key={channel.id}
+          src={youtubeVideo.embedUrl}
+          title={channel.currentProgram.title}
+          className={`absolute inset-0 h-full w-full transition-opacity duration-500 ${showStatic ? 'opacity-0' : 'opacity-100'}`}
+          allow="autoplay; encrypted-media; picture-in-picture"
+          referrerPolicy="strict-origin-when-cross-origin"
+          allowFullScreen
         />
       ) : (
-        <div 
-          className={`absolute inset-0 transition-opacity duration-300 ${isChangingChannel ? 'opacity-0' : 'opacity-100'}`}
+        <div
+          className={`absolute inset-0 transition-opacity duration-500 ${showStatic ? 'opacity-0' : 'opacity-100'}`}
           style={{
-            backgroundImage: `url(${channel.currentProgram.thumbnail})`,
+            backgroundImage: `url(${fallbackThumbnail})`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
+            filter: channel.isThirdParty ? 'brightness(0.8) contrast(1.1)' : 'none'
           }}
         >
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/30 pointer-events-none" />
+          {/* Live indicator for 3rd party cams */}
+          {channel.isThirdParty && (
+            <div className="absolute top-8 right-8 flex items-center gap-2 bg-black/50 px-3 py-1 rounded-full backdrop-blur-sm">
+              <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+              <span className="text-xs font-medium tracking-wider text-white/90 uppercase">Live Cam</span>
+            </div>
+          )}
         </div>
       )}
 
+      {/* Subtle vignette for TV look */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/30 pointer-events-none" />
+
       {/* TV Static Effect during channel change */}
-      {isChangingChannel && (
+      {showStatic && (
         <div className="absolute inset-0 tv-static z-10" />
       )}
     </div>

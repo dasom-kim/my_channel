@@ -11,7 +11,7 @@ import { NavBar, NavTab } from './components/NavBar';
 import { AlertTriangle } from 'lucide-react';
 
 const DEFAULT_PREFS: UserPreferences = {
-  favoriteGenres: ['SF', '시티팝'],
+  favoriteGenres: ['음악', '스포츠'],
   autoSwitchToMyChannel: true,
   enableSmartAlerts: true,
   connectedCams: ['tplink'], // Default to having TP-Link connected
