@@ -1,19 +1,23 @@
 import React, { useEffect, useState } from 'react';
 import { Channel, UserPreferences } from '../types';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, Heart } from 'lucide-react';
 
 interface OSDProps {
   currentChannel: Channel;
   preferences: UserPreferences;
   isMyChannelActive: boolean;
   recommendationReason?: string;
+  likedChannels: Set<string>;
+  onToggleLike: (channelId: string) => void;
 }
 
 export const OSD: React.FC<OSDProps> = ({ 
   currentChannel, 
   preferences, 
   isMyChannelActive, 
-  recommendationReason
+  recommendationReason,
+  likedChannels,
+  onToggleLike
 }) => {
   const [isVisible, setIsVisible] = useState(true);
 
@@ -33,13 +37,15 @@ export const OSD: React.FC<OSDProps> = ({
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
 
+  const isLiked = likedChannels.has(currentChannel.id);
+
   return (
-    <div className={`absolute inset-0 pointer-events-none transition-opacity duration-500 z-20 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
+    <div className={`absolute inset-0 pointer-events-none transition-opacity duration-500 z-40 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
       
       {/* Bottom Info Bar */}
       <div className="absolute bottom-0 left-0 right-0 p-12 bg-gradient-to-t from-black/90 via-black/60 to-transparent">
         <div className="max-w-4xl">
-          <div className="flex items-end gap-6 mb-4">
+          <div className="flex items-center gap-6 mb-4">
             <div className="text-6xl font-bold text-white/90 drop-shadow-lg">
               {currentChannel.number}
             </div>
@@ -56,7 +62,7 @@ export const OSD: React.FC<OSDProps> = ({
               {currentChannel.isThirdParty ? (
                 <div className="flex items-center gap-1.5 text-red-400">
                   <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                  <span className="text-sm font-bold tracking-wider uppercase">LIVE</span>
+                  <span className="text-sm font-bold tracking-wider uppercase">LIVE CAM</span>
                 </div>
               ) : (
                 <span className="text-white/60 text-sm font-medium">
@@ -64,8 +70,23 @@ export const OSD: React.FC<OSDProps> = ({
                 </span>
               )}
             </div>
-            <h2 className="text-2xl font-medium mb-2 text-white">{currentChannel.currentProgram.title}</h2>
-            <p className="text-white/70 text-lg line-clamp-2">{currentChannel.currentProgram.description}</p>
+            <div className="flex items-center gap-4">
+              <h2 className="text-2xl font-medium text-white">{currentChannel.currentProgram.title}</h2>
+              {!currentChannel.isThirdParty && (
+                <button 
+                  onClick={() => onToggleLike(currentChannel.id)}
+                  className="pointer-events-auto text-white/50 hover:text-red-500 transition-colors duration-300"
+                  title={isLiked ? "좋아요 취소" : "좋아요"}
+                >
+                  <Heart 
+                    size={24} 
+                    fill={isLiked ? '#ef4444' : 'none'} 
+                    className={isLiked ? 'text-red-500' : 'text-white/50'}
+                  />
+                </button>
+              )}
+            </div>
+            <p className="text-white/70 text-lg line-clamp-2 mt-2">{currentChannel.currentProgram.description}</p>
             
             {/* AI Recommendation Reason */}
             {isMyChannelActive && recommendationReason && !currentChannel.isThirdParty && (

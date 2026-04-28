@@ -8,7 +8,7 @@ import { SettingsModal } from './components/SettingsModal';
 import { SmartAlertPiP } from './components/SmartAlertPiP';
 import { ChannelList } from './components/ChannelList';
 import { NavBar, NavTab } from './components/NavBar';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Shuffle } from 'lucide-react';
 
 const DEFAULT_PREFS: UserPreferences = {
   favoriteGenres: ['음악', '스포츠'],
@@ -27,6 +27,9 @@ export default function App() {
   const [activeAlert, setActiveAlert] = useState<AlertEvent | null>(null);
   const [isChangingChannel, setIsChangingChannel] = useState<boolean>(false);
   const [recommendationReason, setRecommendationReason] = useState<string>('');
+  const [likedChannels, setLikedChannels] = useState<Set<string>>(new Set());
+  const [isAutoAdvanceEnabled, setIsAutoAdvanceEnabled] = useState<boolean>(false);
+  const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null); // New state for sync time
 
   const isMyChannelActive = activeTab === 'my-channel';
 
@@ -35,12 +38,10 @@ export default function App() {
     const allBroadcast = MOCK_CHANNELS.filter(c => !c.isThirdParty);
     
     if (activeTab === 'live-tv') {
-      // Live TV: Show all broadcast channels, NO 3rd party cameras
       return allBroadcast.sort((a, b) => a.number - b.number);
     }
 
     if (activeTab === 'my-channel') {
-      // My Channel: Show filtered broadcast + connected cameras
       const connectedCams = MOCK_CHANNELS.filter(c => 
         c.isThirdParty && c.brandId && preferences.connectedCams.includes(c.brandId)
       );
@@ -57,20 +58,17 @@ export default function App() {
       return [...filteredBroadcast, ...connectedCams].sort((a, b) => a.number - b.number);
     }
 
-    // For other tabs, we might not need activeChannels, but return broadcast as fallback
     return allBroadcast.sort((a, b) => a.number - b.number);
   }, [preferences.connectedCams, preferences.favoriteGenres, activeTab]);
 
   const currentChannel = activeChannels.find(c => c.id === currentChannelId) || activeChannels[0];
   
-  // Get all currently connected cam channels for alerts (memoized to prevent infinite loops in useCallback)
   const connectedCamChannels = useMemo(() => {
     return MOCK_CHANNELS.filter(c => 
       c.isThirdParty && c.brandId && preferences.connectedCams.includes(c.brandId)
     );
   }, [preferences.connectedCams]);
 
-  // Handle Channel Change
   const changeChannel = useCallback((newId: string) => {
     if (newId === currentChannelId) return;
     setIsChangingChannel(true);
@@ -80,36 +78,36 @@ export default function App() {
     }, 300);
   }, [currentChannelId]);
 
-  // Ensure we don't stay on a disconnected or filtered-out channel when switching tabs
   useEffect(() => {
     if ((activeTab === 'my-channel' || activeTab === 'live-tv') && !activeChannels.find(c => c.id === currentChannelId)) {
       changeChannel(activeChannels[0].id);
     }
   }, [activeChannels, currentChannelId, changeChannel, activeTab]);
 
-  // AI Recommendation Logic (Only runs when entering My Channel)
-  const applyMyChannelRecommendation = useCallback(async () => {
+  // AI Recommendation Logic
+  const applyMyChannelRecommendation = useCallback(async (isManualSync: boolean = false) => {
     if (!isMyChannelActive) return;
+    
+    if(isManualSync) console.log('Syncing channels with TV Plus server...');
     
     const { channelId, reason } = await getRecommendedChannel(activeChannels, preferences);
     setRecommendationReason(reason);
+    setLastSyncTime(new Date()); // Update sync time
     
     if (channelId !== currentChannelId) {
       changeChannel(channelId);
     }
   }, [isMyChannelActive, preferences, currentChannelId, changeChannel, activeChannels]);
 
-  // Trigger recommendation when entering My Channel or updating preferences
+  // Initial recommendation when entering My Channel
   useEffect(() => {
     if (isMyChannelActive) {
       applyMyChannelRecommendation();
     } else {
       setRecommendationReason('');
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [preferences, isMyChannelActive]);
 
-  // Simulate Smart Alert
   const triggerSimulatedAlert = useCallback(() => {
     if (!preferences.enableSmartAlerts || connectedCamChannels.length === 0) return;
     
@@ -133,49 +131,64 @@ export default function App() {
     }
   };
 
-  // Auto-trigger alert every 1 minute for demonstration purposes
   useEffect(() => {
     const intervalId = setInterval(() => {
       triggerSimulatedAlert();
-    }, 60000); // 60000ms = 1 minute
-
+    }, 60000);
     return () => clearInterval(intervalId);
   }, [triggerSimulatedAlert]);
 
-  // Render main content based on active tab
+  const toggleLike = useCallback((channelId: string) => {
+    setLikedChannels(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(channelId)) newSet.delete(channelId);
+      else newSet.add(channelId);
+      return newSet;
+    });
+  }, []);
+
+  const handleVideoEnd = useCallback(() => {
+    if (!isAutoAdvanceEnabled || currentChannel.isThirdParty) return;
+
+    const currentIndex = activeChannels.findIndex(c => c.id === currentChannelId);
+    if (currentIndex !== -1) {
+      const nextIndex = (currentIndex + 1) % activeChannels.length;
+      changeChannel(activeChannels[nextIndex].id);
+    }
+  }, [isAutoAdvanceEnabled, currentChannelId, activeChannels, changeChannel, currentChannel.isThirdParty]);
+
   const renderMainContent = () => {
     if (activeTab === 'my-channel' || activeTab === 'live-tv') {
       return (
         <>
           <VideoPlayer 
             channel={currentChannel} 
-            isChangingChannel={isChangingChannel} 
+            isChangingChannel={isChangingChannel}
+            onVideoEnd={handleVideoEnd}
           />
           <OSD 
             currentChannel={currentChannel}
             preferences={preferences}
             isMyChannelActive={isMyChannelActive}
             recommendationReason={recommendationReason}
+            likedChannels={likedChannels}
+            onToggleLike={toggleLike}
           />
           <ChannelList 
             channels={activeChannels}
             currentChannelId={currentChannelId}
-            onSelectChannel={(id) => {
-              changeChannel(id);
-            }}
+            onSelectChannel={changeChannel}
+            lastSyncTime={lastSyncTime}
+            onSync={() => applyMyChannelRecommendation(true)}
           />
         </>
       );
     }
 
-    // Placeholder for other tabs (Home, VOD, etc.)
     return (
       <div className="w-full h-full flex flex-col items-center justify-center bg-gray-900 text-white">
         <h1 className="text-4xl font-bold mb-4">
-          {activeTab === 'home' ? '홈' : 
-           activeTab === 'search' ? '검색' : 
-           activeTab === 'vod' ? '영화/TV' : 
-           activeTab === 'music' ? '음악' : '키즈'}
+          {activeTab === 'home' ? '홈' : '기타 메뉴'}
         </h1>
         <p className="text-gray-400">이 메뉴는 데모 버전에서 제공되지 않습니다.</p>
         <button 
@@ -190,45 +203,52 @@ export default function App() {
 
   return (
     <div className="flex w-full h-full bg-black font-sans overflow-hidden">
-      
-      {/* Left Navigation Bar */}
       <NavBar 
         activeTab={activeTab} 
         onTabChange={setActiveTab} 
         onOpenSettings={() => setIsSettingsOpen(true)} 
       />
-
-      {/* Main Content Area */}
       <div className="flex-1 relative">
         {renderMainContent()}
 
-        {/* Smart Alert PiP (Global) */}
+        <div className="absolute top-4 left-4 z-20">
+          <button
+            onClick={() => setIsAutoAdvanceEnabled(!isAutoAdvanceEnabled)}
+            className={`p-2 rounded-full transition-colors duration-300 ${
+              isAutoAdvanceEnabled ? 'bg-blue-600 text-white' : 'bg-black/50 text-white/70 hover:bg-white/20'
+            }`}
+            title={isAutoAdvanceEnabled ? "자동 채널 전환 비활성화" : "자동 채널 전환 활성화"}
+          >
+            <Shuffle size={20} />
+          </button>
+        </div>
+
         <SmartAlertPiP 
           alert={activeAlert}
           camChannel={activeAlert ? MOCK_CHANNELS.find(c => c.id === activeAlert.channelId) : undefined}
           onAccept={(id) => {
-            setActiveTab('my-channel'); // Switching to cam implies turning on My Channel features
+            setActiveTab('my-channel');
             changeChannel(id);
             setActiveAlert(null);
           }}
           onDismiss={() => setActiveAlert(null)}
         />
-
-        {/* Settings Modal */}
         <SettingsModal 
           isOpen={isSettingsOpen}
           onClose={() => setIsSettingsOpen(false)}
           preferences={preferences}
           onUpdatePreferences={setPreferences}
         />
-
-        {/* Debug/Demo Controls */}
         {preferences.enableSmartAlerts && (
-          <div className="absolute top-4 right-4 z-50 flex gap-2">
+          <div className="absolute top-4 right-4 z-20 flex gap-2">
             <button 
               onClick={handleAlertButtonClick}
               disabled={connectedCamChannels.length === 0}
-              className="bg-red-600/80 hover:bg-red-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white px-3 py-1.5 rounded text-xs font-bold flex items-center gap-1 backdrop-blur-sm"
+              className={`px-3 py-1.5 rounded text-xs font-bold flex items-center gap-1 backdrop-blur-sm transition-colors duration-300 disabled:bg-gray-600 disabled:cursor-not-allowed ${
+                activeAlert 
+                  ? 'bg-red-600/80 text-white hover:bg-red-500' 
+                  : 'bg-black/50 text-white/60 hover:bg-white/20'
+              }`}
               title={connectedCamChannels.length === 0 ? "카메라를 먼저 연결하세요" : "홈캠 알림 시뮬레이션"}
             >
               <AlertTriangle size={14} />

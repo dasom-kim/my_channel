@@ -1,90 +1,97 @@
 import { GoogleGenAI, Type } from '@google/genai';
 import { Channel, UserPreferences } from '../types';
 
-// Initialize GenAI. In a real app, handle missing API keys gracefully.
-// For this demo, we'll try to use it if available, otherwise fallback to local logic.
-let ai: GoogleGenAI | null = null;
-try {
-  if (process.env.API_KEY) {
-    ai = new GoogleGenAI({ apiKey: process.env.API_KEY, vertexai: true });
-  }
-} catch (e) {
-  console.warn("GenAI initialization failed. Falling back to local logic.", e);
-}
+// 프록시 서버를 통해 API 키가 주입되므로 클라이언트 측 설정 유지
+const ai = new GoogleGenAI({ apiKey: 'GEMINI_AI_KEY', vertexai: true });
 
+/**
+ * 1단계: 사용자 페르소나 분석 (Persona Analysis)
+ * 시청 이력과 선호도를 기반으로 사용자의 시청 성향을 요약합니다.
+ */
+const generateUserPersona = async (preferences: UserPreferences): Promise<string> => {
+  const prompt = `
+    다음 데이터를 바탕으로 사용자의 시청 취향과 현재 상태를 2문장으로 요약하여 페르소나를 도출하세요.
+    - 선호 장르: ${preferences.favoriteGenres.join(', ')}
+    - 계정 연동 상태: ${preferences.isGoogleConnected ? '연동됨' : '미연동'}
+    - 등록된 기기: ${preferences.connectedCams.join(', ')}
+  `;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.0-flash',
+      contents: prompt
+    });
+    return response.text || "콘텐츠를 즐기는 시청자";
+  } catch (error) {
+    return "다양한 프로그램을 즐기는 시청자";
+  }
+};
+
+/**
+ * 2단계: 추천 엔진 실행 (Recall & Reasoning)
+ * 도출된 페르소나와 일치하는 최적의 채널을 선정하고 추천 사유를 생성합니다.
+ */
 export const getRecommendedChannel = async (
   channels: Channel[],
   preferences: UserPreferences
 ): Promise<{ channelId: string; reason: string }> => {
-  // Filter out 3rd party cams from general recommendations unless specifically requested
+  
+  // 써드파티 앱(YouTube 등)을 제외한 실제 방송 채널만 후보군으로 설정 (Recall)
   const broadcastChannels = channels.filter(c => !c.isThirdParty);
 
-  if (!preferences.favoriteGenres.length) {
-    return { channelId: broadcastChannels[0].id, reason: "설정된 취향이 없어 기본 채널을 보여드립니다." };
-  }
+  try {
+    // 1. 페르소나 분석 단계 수행
+    const persona = await generateUserPersona(preferences);
 
-  // Try using Gemini for intelligent recommendation
-  if (ai) {
-    try {
-      const prompt = `
-        당신은 스마트 TV의 AI 어시스턴트입니다. 사용자의 취향을 바탕으로 가장 적합한 채널을 추천해야 합니다.
-        
-        사용자의 선호 장르: ${preferences.favoriteGenres.join(', ')}
-        
-        현재 방송 중인 채널 및 프로그램:
-        ${broadcastChannels.map(c => `- 채널 ${c.id} (${c.name}): "${c.currentProgram.title}" (장르: ${c.currentProgram.genre}) - ${c.currentProgram.description}`).join('\n')}
-        
-        사용자의 취향과 현재 방송 중인 프로그램을 분석하세요.
-        가장 취향에 맞는 채널 ID 하나를 선택하세요. 정확히 일치하는 장르가 없다면 가장 유사한 주제나 인기 있는 채널을 선택하세요.
-        선택한 이유를 시청자가 흥미를 느낄 수 있도록 한국어로 1문장으로 짧게 작성해주세요.
-      `;
+    // 2. 최종 선정 및 사유 생성 (Reasoning)
+    const prompt = `
+      당신은 스마트 TV PD입니다. 사용자 페르소나를 분석하여 아래 후보 중 1개를 선정하세요.
+      
+      [사용자 페르소나]
+      ${persona}
+      
+      [추천 후보군]
+      ${broadcastChannels.map(c => `- ID: ${c.id}, 제목: ${c.currentProgram.title}, 장르: ${c.currentProgram.genre}, 설명: ${c.currentProgram.description}`).join('\n')}
+      
+      [출력 규격] 반드시 JSON 형식으로만 답변하세요.
+      {
+        "selected_id": "ID",
+        "reason": "사용자에게 전달할 따뜻하고 유쾌한 추천 멘트 (1문장)"
+      }
+    `;
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: prompt,
-        config: {
-          responseMimeType: 'application/json',
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              channelId: { type: Type.STRING, description: "추천하는 채널의 ID" },
-              reason: { type: Type.STRING, description: "추천하는 이유 (한국어 1문장)" }
-            },
-            required: ["channelId", "reason"]
-          }
-        }
-      });
-
-      if (response.text) {
-        const result = JSON.parse(response.text);
-        // Verify the ID exists
-        if (broadcastChannels.find(c => c.id === result.channelId)) {
-          return result;
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.0-flash',
+      contents: prompt,
+      config: {
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            selected_id: { type: Type.STRING },
+            reason: { type: Type.STRING }
+          },
+          required: ["selected_id", "reason"]
         }
       }
-    } catch (error) {
-      console.error("Error calling Gemini API:", error);
-      // Fallthrough to local logic
+    });
+
+    if (response.text) {
+      const result = JSON.parse(response.text);
+      const selectedChannel = broadcastChannels.find(c => c.id === result.selected_id);
+      
+      if (selectedChannel) {
+        return { channelId: selectedChannel.id, reason: result.reason };
+      }
     }
+  } catch (error) {
+    console.error("추천 엔진 실행 중 오류 발생:", error);
   }
 
-  // Fallback local logic if Gemini fails or is unavailable
-  console.log("Using local recommendation logic");
-  
-  // 1. Try to find an exact genre match
-  for (const genre of preferences.favoriteGenres) {
-    const match = broadcastChannels.find(c => c.currentProgram.genre === genre);
-    if (match) {
-      return { 
-        channelId: match.id, 
-        reason: `고객님이 좋아하는 '${genre}' 장르의 프로그램이 방송 중입니다.` 
-      };
-    }
-  }
-
-  // 2. Default to the first channel if no match
+  // Fallback: 오류 시 기본 매칭 로직 사용
+  const fallback = broadcastChannels.find(c => preferences.favoriteGenres.includes(c.currentProgram.genre)) || broadcastChannels[0];
   return { 
-    channelId: broadcastChannels[0].id, 
-    reason: "현재 가장 인기 있는 방송을 추천해 드립니다." 
+    channelId: fallback.id, 
+    reason: "오늘의 인기 채널을 준비했습니다. 즐거운 시청 되세요!" 
   };
 };
