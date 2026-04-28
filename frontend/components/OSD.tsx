@@ -45,9 +45,6 @@ export const OSD: React.FC<OSDProps> = ({
             </div>
             <div className="pb-1">
               <h1 className="text-4xl font-semibold drop-shadow-md text-white">{currentChannel.name}</h1>
-              {currentChannel.isThirdParty && (
-                <span className="inline-block mt-2 px-2 py-1 bg-white/20 rounded text-xs font-medium tracking-wider uppercase text-white">외부 입력</span>
-              )}
             </div>
           </div>
           
@@ -56,9 +53,16 @@ export const OSD: React.FC<OSDProps> = ({
               <span className="px-2.5 py-1 bg-blue-600/80 rounded text-xs font-bold uppercase tracking-wider text-white">
                 {currentChannel.currentProgram.genre}
               </span>
-              <span className="text-white/60 text-sm font-medium">
-                {currentChannel.currentProgram.startTime} - {currentChannel.currentProgram.endTime}
-              </span>
+              {currentChannel.isThirdParty ? (
+                <div className="flex items-center gap-1.5 text-red-400">
+                  <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                  <span className="text-sm font-bold tracking-wider uppercase">LIVE</span>
+                </div>
+              ) : (
+                <span className="text-white/60 text-sm font-medium">
+                  {currentChannel.currentProgram.startTime} - {currentChannel.currentProgram.endTime}
+                </span>
+              )}
             </div>
             <h2 className="text-2xl font-medium mb-2 text-white">{currentChannel.currentProgram.title}</h2>
             <p className="text-white/70 text-lg line-clamp-2">{currentChannel.currentProgram.description}</p>

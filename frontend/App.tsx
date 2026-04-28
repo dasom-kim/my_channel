@@ -125,6 +125,14 @@ export default function App() {
     setActiveAlert(newAlert);
   }, [preferences.enableSmartAlerts, connectedCamChannels]);
 
+  const handleAlertButtonClick = () => {
+    if (activeAlert) {
+      setActiveAlert(null);
+    } else {
+      triggerSimulatedAlert();
+    }
+  };
+
   // Auto-trigger alert every 1 minute for demonstration purposes
   useEffect(() => {
     const intervalId = setInterval(() => {
@@ -216,9 +224,9 @@ export default function App() {
 
         {/* Debug/Demo Controls */}
         {preferences.enableSmartAlerts && (
-          <div className="absolute bottom-4 right-4 z-50 flex gap-2 opacity-20 hover:opacity-100 transition-opacity">
+          <div className="absolute top-4 right-4 z-50 flex gap-2">
             <button 
-              onClick={triggerSimulatedAlert}
+              onClick={handleAlertButtonClick}
               disabled={connectedCamChannels.length === 0}
               className="bg-red-600/80 hover:bg-red-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white px-3 py-1.5 rounded text-xs font-bold flex items-center gap-1 backdrop-blur-sm"
               title={connectedCamChannels.length === 0 ? "카메라를 먼저 연결하세요" : "홈캠 알림 시뮬레이션"}

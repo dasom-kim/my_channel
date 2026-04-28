@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Channel } from '../types';
 
 interface VideoPlayerProps {
@@ -8,6 +8,7 @@ interface VideoPlayerProps {
 
 export const VideoPlayer: React.FC<VideoPlayerProps> = ({ channel, isChangingChannel }) => {
   const [showStatic, setShowStatic] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     if (isChangingChannel) {
@@ -17,29 +18,41 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ channel, isChangingCha
     }
   }, [isChangingChannel, channel.id]);
 
+  // Explicitly play the video when it becomes visible
+  useEffect(() => {
+    if (channel.isThirdParty && !showStatic && videoRef.current) {
+      videoRef.current.play().catch(error => {
+        console.warn("Video autoplay failed, trying to play manually:", error);
+      });
+    }
+  }, [channel, showStatic]);
+
   return (
     <div className="absolute inset-0 w-full h-full bg-black overflow-hidden">
-      {/* Simulated Video Content */}
-      <div 
-        className={`absolute inset-0 transition-opacity duration-500 ${showStatic ? 'opacity-0' : 'opacity-100'}`}
-        style={{
-          backgroundImage: `url(${channel.currentProgram.thumbnail})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          filter: channel.isThirdParty ? 'brightness(0.8) contrast(1.1)' : 'none' // Slight visual difference for cams
-        }}
-      >
-        {/* Subtle vignette for TV look */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/30 pointer-events-none" />
-        
-        {/* Live indicator for 3rd party cams */}
-        {channel.isThirdParty && (
-          <div className="absolute top-8 right-8 flex items-center gap-2 bg-black/50 px-3 py-1 rounded-full backdrop-blur-sm">
-            <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-            <span className="text-xs font-medium tracking-wider text-white/90 uppercase">Live Cam</span>
-          </div>
-        )}
-      </div>
+      {channel.isThirdParty ? (
+        <video
+          ref={videoRef}
+          key={channel.id}
+          src={channel.currentProgram.videoUrl}
+          autoPlay
+          loop
+          muted
+          playsInline
+          className={`w-full h-full object-cover transition-opacity duration-500 ${showStatic ? 'opacity-0' : 'opacity-100'}`}
+        />
+      ) : (
+        <div 
+          className={`absolute inset-0 transition-opacity duration-500 ${showStatic ? 'opacity-0' : 'opacity-100'}`}
+          style={{
+            backgroundImage: `url(${channel.currentProgram.thumbnail})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+          }}
+        >
+          {/* Subtle vignette for TV look */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/30 pointer-events-none" />
+        </div>
+      )}
 
       {/* TV Static Effect during channel change */}
       {showStatic && (

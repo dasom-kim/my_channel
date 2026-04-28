@@ -40,7 +40,7 @@ export const SmartAlertPiP: React.FC<SmartAlertPiPProps> = ({ alert, camChannel,
 
   return (
     <div 
-      className={`absolute bottom-12 right-12 w-96 bg-gray-900/90 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl overflow-hidden transition-all duration-500 transform ${
+      className={`absolute top-16 right-12 w-96 bg-gray-900/90 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl overflow-hidden transition-all duration-500 transform ${
         isVisible ? 'translate-y-0 opacity-100 scale-100' : 'translate-y-10 opacity-0 scale-95 pointer-events-none'
       } z-50`}
     >

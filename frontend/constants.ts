@@ -115,7 +115,7 @@ export const MOCK_CHANNELS: Channel[] = [
       genre: '홈캠',
       description: 'TP-Link에 연결된 홈 카메라의 실시간 스트림입니다.',
       thumbnail: 'https://picsum.photos/seed/homecam/1280/720',
-      videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4',
+      videoUrl: './living_room.mp4',
       startTime: '00:00',
       endTime: '23:59'
     }
