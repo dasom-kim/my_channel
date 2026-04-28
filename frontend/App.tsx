@@ -110,20 +110,25 @@ export default function App() {
 
   // 15-second auto-advance timer effect
   useEffect(() => {
-    // Only run if auto-advance is enabled and we're not on a live cam
     if (!isAutoAdvanceEnabled || currentChannel.isThirdParty) {
       return;
     }
 
-    const advanceInterval = setInterval(() => {
-      const currentIndex = activeChannels.findIndex(c => c.id === currentChannelId);
-      if (currentIndex !== -1) {
-        const nextIndex = (currentIndex + 1) % activeChannels.length;
-        changeChannel(activeChannels[nextIndex].id);
-      }
-    }, 15000); // 15 seconds
+    // Create a list of only non-live channels to cycle through
+    const shuffleableChannels = activeChannels.filter(c => !c.isThirdParty);
+    if (shuffleableChannels.length < 2) return; // Not enough channels to shuffle
 
-    // Cleanup function to stop the timer
+    const advanceInterval = setInterval(() => {
+      const currentIndex = shuffleableChannels.findIndex(c => c.id === currentChannelId);
+      if (currentIndex !== -1) {
+        const nextIndex = (currentIndex + 1) % shuffleableChannels.length;
+        changeChannel(shuffleableChannels[nextIndex].id);
+      } else {
+        // If current channel is not in the shuffle list (e.g., a live cam), start from the first shuffleable channel
+        changeChannel(shuffleableChannels[0].id);
+      }
+    }, 15000);
+
     return () => clearInterval(advanceInterval);
 
   }, [isAutoAdvanceEnabled, currentChannel, currentChannelId, activeChannels, changeChannel]);
