@@ -132,7 +132,7 @@ export const MOCK_CHANNELS: Channel[] = [
       genre: '홈캠',
       description: '트루엔 보안 카메라의 실시간 스트림입니다.',
       thumbnail: 'https://picsum.photos/seed/frontdoor/1280/720',
-      videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4',
+      videoUrl: './front_door.mp4',
       startTime: '00:00',
       endTime: '23:59'
     }
@@ -149,7 +149,7 @@ export const MOCK_CHANNELS: Channel[] = [
       genre: '홈캠',
       description: '고퀄 헤이홈 카메라의 실시간 스트림입니다.',
       thumbnail: 'https://picsum.photos/seed/babyroom/1280/720',
-      videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
+      videoUrl: './kids_room.mp4',
       startTime: '00:00',
       endTime: '23:59'
     }
@@ -166,7 +166,7 @@ export const MOCK_CHANNELS: Channel[] = [
       genre: '홈캠',
       description: '연결된 GoPro의 실시간 방송입니다.',
       thumbnail: 'https://picsum.photos/seed/gopro/1280/720',
-      videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+      videoUrl: './gopro.mp4',
       startTime: '00:00',
       endTime: '23:59'
     }
